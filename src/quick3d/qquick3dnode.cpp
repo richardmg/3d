@@ -139,8 +139,7 @@ float QQuick3DNode::z() const
 */
 QVector3D QQuick3DNode::rotation() const
 {
-    Q_D(const QQuick3DNode);
-    return d->m_rotation;
+    return d_func()->m_rotation;
 }
 
 /*!
@@ -304,7 +303,29 @@ QVector3D QQuick3DNode::scenePosition() const
 QVector3D QQuick3DNode::sceneRotation() const
 {
     Q_D(const QQuick3DNode);
-    return mat44::getRotation(sceneTransform(), EulerOrder(d->m_rotationorder));
+    // The scene transform tells how to rotate a local vector into scene
+    // space. But we want to know the opposite, what rotation a scene space
+    // vector should have to have the same visual rotation as the local
+    // space of this node. So we need the inverse.
+    QMatrix4x4 m = sceneTransformRightHanded().inverted();
+
+    if (d->m_orientation == LeftHanded) {
+        // This node is left handed, but m is right handed. So we need to
+        // flip it before we read out the left handed rotation.
+        mat44::flip(m);
+    }
+
+    return mat44::getRotation(m, EulerOrder(d->m_rotationorder));
+
+//    return d_func()->sceneRotation().toEulerAngles();
+}
+
+QQuaternion QQuick3DNodePrivate::sceneRotation() const
+{
+    if (const auto parent = q_func()->parentNode())
+        return QQuick3DNodePrivate::get(parent)->sceneRotation() * m_quaternion;
+    else
+        return m_quaternion;
 }
 
 /*!
@@ -374,6 +395,13 @@ void QQuick3DNodePrivate::calculateGlobalVariables()
     if (privateParent->m_sceneTransformDirty)
         privateParent->calculateGlobalVariables();
     m_sceneTransformRightHanded = privateParent->m_sceneTransformRightHanded * localTransformRightHanded;
+}
+
+QMatrix4x4 QQuick3DNodePrivate::calculateLocalRotationMatrix()
+{
+    const QVector3D radians = degToRad(m_rotation);
+    return QSSGEulerAngleConverter::createRotationMatrix(radians, EulerOrder(m_rotationorder));
+    //const QMatrix4x4 rotationTransform(m_quaternion.toRotationMatrix());
 }
 
 QMatrix4x4 QQuick3DNodePrivate::calculateLocalTransformRightHanded()
@@ -551,16 +579,114 @@ void QQuick3DNode::setZ(float z)
     update();
 }
 
-void QQuick3DNode::setRotation(const QVector3D &rotation)
+void QQuick3DNode::setRotation(const QVector3D &rotation, TransformSpace space)
 {
     Q_D(QQuick3DNode);
+
     if (d->m_rotation == rotation)
         return;
 
     d->m_rotation = rotation;
-    d->markSceneTransformDirty();
+
+    /*
+        - When converting from euler to quat, I need to use the reverse rotation order when
+            I pass the rotation to the converter.
+            But the backend node is still using the normal order when calculating the rotation
+            matrix. This needs to be figured out!!
+
+        - When using the converter here, I need to convert CW to CCW. But the backend node
+            doesnt do that. Why?
+
+        - The sceneRotation goes wrong independt of the bakend. The backend only uses m_rotation, and
+            not the quaternion, so it's currently unaffected by this work (except we have changed the
+            rotation order in the backend as well).
+
+        - The test case I used was wrong all along, since first rotating parent, then child, does not
+            produce the same result as rotating only the child with the combined rotation. Becuse the
+            rotation order will be different.
+
+        - Its also not weird that quat.toRotationMatrix() produces the same matrix as the converter, since
+            the quat got its matrix from the converter in the first place. But do the matrices end
+            up differently if I rotate in-between?
+
+
+    */
+
+    QVector3D radians = degToRad(rotation);
+    if (orientation() == LeftHanded) {
+        // Need to convert rotation from left-handed (CW) to
+        // right-handed (CCW) before using the QSSGEulerAngleConverter.
+        radians *= -1;
+    }
+    QMatrix4x4 rotationTransform = QSSGEulerAngleConverter::createRotationMatrix(radians, EulerOrder(d->m_rotationorder));
+    auto quat = QQuaternion::fromRotationMatrix(mat44::getUpper3x3(rotationTransform));
+    d_func()->setRotation(quat, space);
+
     emit rotationChanged();
-    update();
+}
+
+void QQuick3DNodePrivate::setRotation(QQuaternion rotation, QQuick3DNode::TransformSpace space)
+{
+    Q_Q(QQuick3DNode);
+
+    QQuaternion newQuaternion;
+
+    switch (space) {
+    case QQuick3DNode::LocalSpace:
+        newQuaternion = m_quaternion * rotation;
+        break;
+    case QQuick3DNode::ParentSpace:
+        newQuaternion = rotation;
+        break;
+    case QQuick3DNode::SceneSpace:
+        if (const auto parent = q->parentNode()) {
+            const auto parent_d = QQuick3DNodePrivate::get(parent);
+            newQuaternion = parent_d->sceneRotation().inverted() * m_quaternion;
+        } else {
+            newQuaternion = m_quaternion;
+        }
+        break;
+    }
+
+    if (m_quaternion == newQuaternion)
+        return;
+
+    m_quaternion = newQuaternion;
+    markSceneTransformDirty();
+    q->update();
+}
+
+void QQuick3DNode::rotate(qreal degrees, const QVector3D &axis, TransformSpace space)
+{
+    Q_D(QQuick3DNode);
+
+    const RotationOrder prevOrder = d->m_rotationorder;
+    const QVector3D prevRotation = d->m_rotation;
+    const QQuaternion newRotation = QQuaternion::fromAxisAndAngle(axis, float(degrees));
+
+    // To be able to rotate around an arbitrary axis, we need to
+    // change rotation order to be be what QQuaternion uses.
+    d->m_rotationorder = QQuick3DNode::ZXYr;
+
+    switch (space) {
+    case LocalSpace:
+        d->setRotation(newRotation, LocalSpace);
+        break;
+    case ParentSpace:
+        d->setRotation(newRotation * d->m_quaternion, ParentSpace);
+        break;
+    case SceneSpace:
+        const QQuaternion sr = d->sceneRotation();
+        d->setRotation(d->m_quaternion * sr.inverted() * newRotation * sr, ParentSpace);
+        break;
+    }
+
+    d->m_rotation = d->m_quaternion.toEulerAngles();
+
+    if (d->m_rotationorder != prevOrder)
+        emit rotationOrderChanged();
+    if (d->m_rotation != prevRotation)
+        emit rotationChanged();
 }
 
 void QQuick3DNode::setPosition(const QVector3D &position)
@@ -827,6 +953,50 @@ QVector3D QQuick3DNode::mapDirectionToNode(QQuick3DNode *node, const QVector3D &
 QVector3D QQuick3DNode::mapDirectionFromNode(QQuick3DNode *node, const QVector3D &localDirection) const
 {
     return mapDirectionFromScene(node->mapDirectionToScene(localDirection));
+}
+
+/*!
+    Transforms \a localRotation from local space to scene space.
+
+    \sa mapRotationFromScene(), mapRotationToNode(), mapRotationFromNode()
+*/
+QVector3D QQuick3DNode::mapRotationToScene(const QVector3D &localRotation) const
+{
+    const QQuaternion quat = d_func()->sceneRotation() * QQuaternion::fromEulerAngles(localRotation);
+    return quat.toEulerAngles();
+}
+
+/*!
+    Transforms \a sceneRotation from scene space to local space.
+
+    \sa mapRotationToScene(), mapRotationToNode(), mapRotationFromNode()
+*/
+QVector3D QQuick3DNode::mapRotationFromScene(const QVector3D &sceneRotationArg) const
+{
+    const QQuaternion quat = d_func()->sceneRotation().inverted() * QQuaternion::fromEulerAngles(sceneRotationArg);
+    return quat.toEulerAngles();
+}
+
+/*!
+    Transforms \a localRotation from this nodes local space to the
+    local space of \a node.
+
+    \sa mapRotationFromNode(), mapRotationFromScene(), mapRotationToScene()
+*/
+QVector3D QQuick3DNode::mapRotationToNode(QQuick3DNode *node, const QVector3D &localRotation) const
+{
+    return node->mapRotationFromScene(mapRotationToScene(localRotation));
+}
+
+/*!
+    Transforms \a localRotation from the local space of \a node to the
+    local space of this node.
+
+    \sa mapRotationToNode(), mapRotationFromScene(), mapRotationToScene()
+*/
+QVector3D QQuick3DNode::mapRotationFromNode(QQuick3DNode *node, const QVector3D &localRotation) const
+{
+    return mapRotationFromScene(node->mapRotationToScene(localRotation));
 }
 
 QT_END_NAMESPACE

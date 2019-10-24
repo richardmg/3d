@@ -90,6 +90,13 @@ public:
     };
     Q_ENUM(RotationOrder)
 
+    enum TransformSpace {
+        LocalSpace,
+        ParentSpace,
+        SceneSpace
+    };
+    Q_ENUM(TransformSpace)
+
     enum Orientation { LeftHanded = 0, RightHanded };
     Q_ENUM(Orientation)
     QQuick3DNode(QQuick3DNode *parent = nullptr);
@@ -122,6 +129,8 @@ public:
 
     QQuick3DObject::Type type() const override;
 
+    Q_INVOKABLE void rotate(qreal degrees, const QVector3D &axis, TransformSpace space);
+
     Q_INVOKABLE QVector3D mapPositionToScene(const QVector3D &localPosition) const;
     Q_INVOKABLE QVector3D mapPositionFromScene(const QVector3D &scenePosition) const;
     Q_INVOKABLE QVector3D mapPositionToNode(QQuick3DNode *node, const QVector3D &localPosition) const;
@@ -130,7 +139,10 @@ public:
     Q_INVOKABLE QVector3D mapDirectionFromScene(const QVector3D &sceneDirection) const;
     Q_INVOKABLE QVector3D mapDirectionToNode(QQuick3DNode *node, const QVector3D &localDirection) const;
     Q_INVOKABLE QVector3D mapDirectionFromNode(QQuick3DNode *node, const QVector3D &localDirection) const;
-
+    Q_INVOKABLE QVector3D mapRotationToScene(const QVector3D &localRotation) const;
+    Q_INVOKABLE QVector3D mapRotationFromScene(const QVector3D &sceneRotation) const;
+    Q_INVOKABLE QVector3D mapRotationToNode(QQuick3DNode *node, const QVector3D &localRotation) const;
+    Q_INVOKABLE QVector3D mapRotationFromNode(QQuick3DNode *node, const QVector3D &localRotation) const;
 
 protected:
     void connectNotify(const QMetaMethod &signal) override;
@@ -141,7 +153,7 @@ public Q_SLOTS:
     void setX(float x);
     void setY(float y);
     void setZ(float z);
-    void setRotation(const QVector3D &rotation);
+    void setRotation(const QVector3D &rotation, TransformSpace space = ParentSpace);
     void setPosition(const QVector3D &position);
     void setScale(const QVector3D &scale);
     void setPivot(const QVector3D &pivot);

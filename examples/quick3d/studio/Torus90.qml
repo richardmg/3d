@@ -47,41 +47,26 @@
 ** $QT_END_LICENSE$
 **
 ****************************************************************************/
-
-import QtQuick 2.0
 import QtQuick3D 1.0
+import QtQuick 2.12
 
-Node {
-    id: moveGizmo
-    property bool highlightOnHover: false
+Model {
+    id: torusSegment
 
-    scale: Qt.vector3d(7, 7, 7)
+    property color color: "white"
+    property Node gizmoAxisRoot
 
-    property alias arrowX: arrowX
-    property alias arrowY: arrowY
-    property alias arrowZ: arrowZ
+    rotationOrder: Node.XYZr
+    orientation: Node.LeftHanded
+    source: "meshes/Torus.002.mesh"
 
-    Arrow {
-        id: arrowX
-        gizmoRoot: moveGizmo
-        axis: Qt.XAxis
-        rotation: Qt.vector3d(0, -90, 0)
-        color: xAxisGizmoColor
+    DefaultMaterial {
+        id: defaultMaterial_material
+        diffuseColor: currentGizmoAxisNode == gizmoAxisRoot ? Qt.lighter(color) : color
+        lighting: DefaultMaterial.NoLighting
     }
 
-    Arrow {
-        id: arrowY
-        gizmoRoot: moveGizmo
-        axis: Qt.YAxis
-        rotation: Qt.vector3d(90, 0, 0)
-        color: yAxisGizmoColor
-    }
-
-    Arrow {
-        id: arrowZ
-        gizmoRoot: moveGizmo
-        axis: Qt.ZAxis
-        rotation: Qt.vector3d(0, 180, 0)
-        color: zAxisGizmoColor
-    }
+    materials: [
+        defaultMaterial_material
+    ]
 }

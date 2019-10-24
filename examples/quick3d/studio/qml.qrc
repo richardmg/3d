@@ -8,5 +8,9 @@
         <file>CameraGizmo.qml</file>
         <file>Overlay2D.qml</file>
         <file>AutoScaleHelper.qml</file>
+        <file>meshes/Torus.002.mesh</file>
+        <file>Torus360.qml</file>
+        <file>Torus90.qml</file>
+        <file>RotationGizmo.qml</file>
     </qresource>
 </RCC>

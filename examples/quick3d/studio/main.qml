@@ -67,7 +67,22 @@ ApplicationWindow {
     height: 480
     visible: true
 
+    property alias overlayView: overlayView
+
+    property color xAxisGizmoColor: Qt.rgba(1, 0, 0, 1)
+    property color yAxisGizmoColor: Qt.rgba(0, 0, 1, 1)
+    property color zAxisGizmoColor: Qt.rgba(0, 0.8, 0, 1)
+
     property Node nodeBeingManipulated: pot1
+
+    property Node currentGizmoNode: rotationGizmo
+    property Node currentGizmoAxisNode: null
+    property bool inGizmoAxisDragMode: false
+
+    property bool globalOrientation: globalControl.checked
+
+    readonly property int kNoGizmoAxis: -1
+
     signal firstFrameReady
 
     Timer {
@@ -85,7 +100,7 @@ ApplicationWindow {
         PerspectiveCamera {
             id: camera1
             y: 200
-            z: -300
+            z: -50
             clipFar: 100000
         }
 
@@ -110,34 +125,56 @@ ApplicationWindow {
             enableAxisLines: false
         }
 
-        Model {
-            id: pot1
-            objectName: "First pot"
+        Node {
+            rotation: Qt.vector3d(0, 0, 0)
+            x: 0
             y: 200
-            pickable: true
-            rotation: Qt.vector3d(0, 0, 45)
-            source: "meshes/Teapot.mesh"
-            scale: Qt.vector3d(20, 20, 20)
-            materials: DefaultMaterial {
-                diffuseColor: "salmon"
+            z: 400
+            Model {
+                id: pot1
+                objectName: "First pot"
+                rotation: Qt.vector3d(0, 0, 45)
+                pickable: true
+                source: "meshes/Teapot.mesh"
+                scale: Qt.vector3d(20, 20, 20)
+                materials: DefaultMaterial {
+                    diffuseColor: "salmon"
+                }
             }
         }
 
         Model {
             id: pot2
+            x: pot1.scenePosition.x + 50
+            y: pot1.scenePosition.y
+            z: pot1.scenePosition.z
             objectName: "Second pot"
-            x: 200
-            y: 200
-            z: 300
+            rotation: Qt.vector3d(0, 0, 0)
             pickable: true
-            rotation: Qt.vector3d(45, 45, 0)
             source: "meshes/Teapot.mesh"
             scale: Qt.vector3d(20, 20, 20)
             materials: DefaultMaterial {
-                diffuseColor: "salmon"
+                diffuseColor: "white"
             }
+
+            Connections {
+                target: pot1
+                onSceneTransformChanged: {
+                    pot2.rotationOrder = pot1.rotationOrder
+                    pot2.rotation = pot1.sceneRotation
+                    //pot2.rotation = pot2.parent.mapRotationFromScene(pot1.sceneRotation)
+                    //pot2.lookAt(pot3.position, Qt.vector3d(0, 1, 0), Node.ParentSpace)
+                }
+            }
+
+            //            Timer {
+            //                running: true
+            //                interval: 1000
+            //                onTriggered: pot2.rotation = pot1.sceneRotation
+            //            }
         }
     }
+
 
     Node {
         id: overlayScene
@@ -157,19 +194,27 @@ ApplicationWindow {
         }
 
         MoveGizmo {
-            id: targetGizmo
-            scale: autoScaleControl.checked ? autoScale.getScale(Qt.vector3d(5, 5, 5)) : Qt.vector3d(5, 5, 5)
-            highlightOnHover: true
-            targetNode: window.nodeBeingManipulated
-            position: window.nodeBeingManipulated.scenePosition
+            id: moveGizmo
+            visible: currentGizmoNode == moveGizmo
             rotation: globalControl.checked ? Qt.vector3d(0, 0, 0) : window.nodeBeingManipulated.sceneRotation
+            position: window.nodeBeingManipulated.scenePosition
+            scale: Qt.vector3d(5, 5, 5)
         }
 
-        AutoScaleHelper {
-            id: autoScale
-            view3D: overlayView
-            position: targetGizmo.scenePosition
+        RotationGizmo {
+            id: rotationGizmo
+            visible: currentGizmoNode == rotationGizmo
+            position: window.nodeBeingManipulated.scenePosition
+            rotation: globalControl.checked ? Qt.vector3d(0, 0, 0) : window.nodeBeingManipulated.sceneRotation
+            rotationOrder: window.nodeBeingManipulated.rotationOrder
+            scale: Qt.vector3d(100, 100, 100)
         }
+
+//        AutoScaleHelper {
+//            id: autoScale
+//            view3D: overlayView
+//            position: currentGizmoNode.positionInScene
+//        }
     }
 
     RadialGradient {
@@ -185,14 +230,14 @@ ApplicationWindow {
             id: mainView
             anchors.fill: parent
             camera: perspectiveControl.checked ? camera1 : camera2
-            scene: mainScene
+            importScene: mainScene
         }
 
         View3D {
             id: overlayView
             anchors.fill: parent
             camera: perspectiveControl.checked ? overlayCamera1 : overlayCamera2
-            scene: overlayScene
+            importScene: overlayScene
         }
 
         CameraGizmo {
@@ -252,19 +297,43 @@ ApplicationWindow {
             acceptedButtons: Qt.RightButton
         }
 
+        HoverHandler {
+            onPointChanged: {
+                // Check what is under the mouse in the overlay view
+                var mousePressed = point.pressedButtons === Qt.LeftButton;
+
+                if (!mousePressed)
+                    inGizmoAxisDragMode = false
+
+                if (inGizmoAxisDragMode) {
+                    currentGizmoAxisNode.continueDrag(point.position)
+                } else {
+                    // Start a new drag?
+                    var pickResult = overlayView.pick(point.position.x, point.position.y)
+                    var nodeUnderMouse = pickResult.objectHit
+                    if (!nodeUnderMouse) {
+                        currentGizmoAxisNode = null
+                    } else {
+                        var gizmoPart = nodeUnderMouse.gizmoAxisRoot
+                        if (!gizmoPart)
+                            return;
+                        currentGizmoAxisNode = gizmoPart
+                        if (mousePressed) {
+                            inGizmoAxisDragMode = true
+                            gizmoPart.startDrag(point.position)
+                        }
+                    }
+                }
+            }
+        }
+
         TapHandler {
             onTapped: {
-                // Pick a pot, and use it as target for the gizmo
+                // Check if the user selected a new object in the scene.
+                // If so, we change nodeBeingManipulated, which will also move the gizmo
                 var pickResult = mainView.pick(point.position.x, point.position.y)
-                print("picked in mainView:", pickResult.objectHit)
-
-                if (pickResult.objectHit && pickResult.objectHit !== axisGrid)
+                if (pickResult.objectHit)
                     nodeBeingManipulated = pickResult.objectHit
-
-                // Dummy test for now, just to show that it currently doesn't work to pick models
-                // from two different views at the same time. On of the calls will fail.
-                var pickResult2 = overlayView.pick(point.position.x, point.position.y)
-                print("picked in overlayView:", pickResult2.objectHit)
             }
         }
     }
@@ -319,6 +388,57 @@ ApplicationWindow {
                     anchors.left: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     text: qsTr("Show labels")
+                }
+            }
+
+            Button {
+                text: "Reset"
+                onClicked: {
+                    pot1.rotation = Qt.vector3d(0, 0, 0)
+                    wasd.forceActiveFocus()
+                }
+            }
+
+            Button {
+                text: "Cam front"
+                onClicked: {
+                    camera1.rotation = Qt.vector3d(0, 0, 0)
+                    camera1.position = Qt.vector3d(0, 200, -600)
+                    wasd.forceActiveFocus()
+                }
+            }
+
+            Button {
+                text: "Cam side"
+                onClicked: {
+                    camera1.rotation = Qt.vector3d(0, -90, 0)
+                    camera1.position = Qt.vector3d(600, 200, 200)
+                    wasd.forceActiveFocus()
+                }
+            }
+
+            Button {
+                text: "Cam top"
+                onClicked: {
+                    camera1.rotation = Qt.vector3d(90, 0, 0)
+                    camera1.position = Qt.vector3d(0, 600, 200)
+                    wasd.forceActiveFocus()
+                }
+            }
+
+            Button {
+                text: "Rotate Y"
+                onClicked: {
+                    nodeBeingManipulated.rotate(15, Qt.vector3d(0, 1, 0));
+                    wasd.forceActiveFocus()
+                }
+            }
+
+            Button {
+                text: "Rotate Z"
+                onClicked: {
+                    nodeBeingManipulated.rotate(15, Qt.vector3d(0, 0, 1));
+                    wasd.forceActiveFocus()
                 }
             }
 

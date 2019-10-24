@@ -52,6 +52,10 @@
 
 QT_BEGIN_NAMESPACE
 
+// QQuaternion uses XZY, but when calculating the rotation matrix, we
+// need to do the multiplication in reverse order!
+static constexpr QQuick3DNode::RotationOrder kRotationOrderQQuaternion = QQuick3DNode::YXZr;
+
 class QQuick3DNode;
 
 class Q_QUICK3D_PRIVATE_EXPORT QQuick3DNodePrivate : public QQuick3DObjectPrivate
@@ -64,9 +68,13 @@ public:
     ~QQuick3DNodePrivate();
     void init();
 
+    QMatrix4x4 calculateLocalRotationMatrix();
     QMatrix4x4 calculateLocalTransformRightHanded();
     void calculateGlobalVariables();
     void markSceneTransformDirty();
+
+    void setRotation(QQuaternion rotation, QQuick3DNode::TransformSpace space);
+    QQuaternion sceneRotation() const;
 
     void emitChangesToSceneTransform();
     bool isSceneTransformRelatedSignal(const QMetaMethod &signal) const;
@@ -79,6 +87,7 @@ public:
     QVector3D m_position;
     QVector3D m_scale{ 1.0f, 1.0f, 1.0f };
     QVector3D m_pivot;
+    QQuaternion m_quaternion;
     float m_opacity = 1.0f;
     QQuick3DNode::RotationOrder m_rotationorder = QQuick3DNode::YXZ;
     QQuick3DNode::Orientation m_orientation = QQuick3DNode::LeftHanded;
