@@ -257,7 +257,7 @@ void QQuick3DTexture::setSource(const QUrl &source)
 
     m_source = source;
     m_dirtyFlags.setFlag(DirtyFlag::SourceDirty);
-    emit sourceChanged(m_source);
+    emit sourceChanged();
     update();
 }
 
@@ -325,7 +325,7 @@ void QQuick3DTexture::setSourceItem(QQuickItem *sourceItem)
         connect(m_sourceItem, SIGNAL(destroyed(QObject*)), this, SLOT(sourceItemDestroyed(QObject*)));
     }
 
-    emit sourceItemChanged(m_sourceItem);
+    emit sourceItemChanged();
     update();
 }
 
@@ -336,7 +336,7 @@ void QQuick3DTexture::setScaleU(float scaleU)
 
     m_scaleU = scaleU;
     m_dirtyFlags.setFlag(DirtyFlag::TransformDirty);
-    emit scaleUChanged(m_scaleU);
+    emit scaleUChanged();
     update();
 }
 
@@ -347,7 +347,7 @@ void QQuick3DTexture::setScaleV(float scaleV)
 
     m_scaleV = scaleV;
     m_dirtyFlags.setFlag(DirtyFlag::TransformDirty);
-    emit scaleVChanged(m_scaleV);
+    emit scaleVChanged();
     update();
 }
 
@@ -357,7 +357,7 @@ void QQuick3DTexture::setMappingMode(QQuick3DTexture::MappingMode mappingMode)
         return;
 
     m_mappingMode = mappingMode;
-    emit mappingModeChanged(m_mappingMode);
+    emit mappingModeChanged();
     update();
 }
 
@@ -367,7 +367,7 @@ void QQuick3DTexture::setHorizontalTiling(QQuick3DTexture::TilingMode tilingMode
         return;
 
     m_tilingModeHorizontal = tilingModeHorizontal;
-    emit horizontalTilingChanged(m_tilingModeHorizontal);
+    emit horizontalTilingChanged();
     update();
 }
 
@@ -377,7 +377,7 @@ void QQuick3DTexture::setVerticalTiling(QQuick3DTexture::TilingMode tilingModeVe
         return;
 
     m_tilingModeVertical = tilingModeVertical;
-    emit verticalTilingChanged(m_tilingModeVertical);
+    emit verticalTilingChanged();
     update();
 }
 
@@ -388,7 +388,7 @@ void QQuick3DTexture::setRotationUV(float rotationUV)
 
     m_rotationUV = rotationUV;
     m_dirtyFlags.setFlag(DirtyFlag::TransformDirty);
-    emit rotationUVChanged(m_rotationUV);
+    emit rotationUVChanged();
     update();
 }
 
@@ -399,7 +399,7 @@ void QQuick3DTexture::setPositionU(float positionU)
 
     m_positionU = positionU;
     m_dirtyFlags.setFlag(DirtyFlag::TransformDirty);
-    emit positionUChanged(m_positionU);
+    emit positionUChanged();
     update();
 }
 
@@ -410,7 +410,7 @@ void QQuick3DTexture::setPositionV(float positionV)
 
     m_positionV = positionV;
     m_dirtyFlags.setFlag(DirtyFlag::TransformDirty);
-    emit positionVChanged(m_positionV);
+    emit positionVChanged();
     update();
 }
 
@@ -421,7 +421,7 @@ void QQuick3DTexture::setPivotU(float pivotU)
 
     m_pivotU = pivotU;
     m_dirtyFlags.setFlag(DirtyFlag::TransformDirty);
-    emit pivotUChanged(m_pivotU);
+    emit pivotUChanged();
     update();
 }
 
@@ -432,7 +432,7 @@ void QQuick3DTexture::setPivotV(float pivotV)
 
     m_pivotV = pivotV;
     m_dirtyFlags.setFlag(DirtyFlag::TransformDirty);
-    emit pivotVChanged(m_pivotV);
+    emit pivotVChanged();
     update();
 }
 
@@ -442,7 +442,7 @@ void QQuick3DTexture::setFormat(QQuick3DTexture::Format format)
         return;
 
     m_format = format;
-    emit formatChanged(m_format);
+    emit formatChanged();
     update();
 }
 
@@ -586,7 +586,7 @@ void QQuick3DTexture::sourceItemDestroyed(QObject *item)
     Q_ASSERT(item == m_sourceItem);
     Q_UNUSED(item)
     m_sourceItem = nullptr;
-    emit sourceItemChanged(m_sourceItem);
+    emit sourceItemChanged();
     update();
 }
 

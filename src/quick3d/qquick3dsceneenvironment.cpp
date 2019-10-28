@@ -387,7 +387,7 @@ void QQuick3DSceneEnvironment::setProgressiveAAMode(QQuick3DSceneEnvironment::QQ
         return;
 
     m_progressiveAAMode = progressiveAAMode;
-    emit progressiveAAModeChanged(m_progressiveAAMode);
+    emit progressiveAAModeChanged();
     update();
 }
 
@@ -397,7 +397,7 @@ void QQuick3DSceneEnvironment::setMultisampleAAMode(QQuick3DSceneEnvironment::QQ
         return;
 
     m_multisampleAAMode = multisampleAAMode;
-    emit multisampleAAModeChanged(m_multisampleAAMode);
+    emit multisampleAAModeChanged();
     update();
 }
 
@@ -407,7 +407,7 @@ void QQuick3DSceneEnvironment::setBackgroundMode(QQuick3DSceneEnvironment::QQuic
         return;
 
     m_backgroundMode = backgroundMode;
-    emit backgroundModeChanged(m_backgroundMode);
+    emit backgroundModeChanged();
     update();
 }
 
@@ -417,7 +417,7 @@ void QQuick3DSceneEnvironment::setClearColor(const QColor &clearColor)
         return;
 
     m_clearColor = clearColor;
-    emit clearColorChanged(m_clearColor);
+    emit clearColorChanged();
     update();
 }
 
@@ -427,7 +427,7 @@ void QQuick3DSceneEnvironment::setAoStrength(float aoStrength)
         return;
 
     m_aoStrength = aoStrength;
-    emit aoStrengthChanged(m_aoStrength);
+    emit aoStrengthChanged();
     update();
 }
 
@@ -437,7 +437,7 @@ void QQuick3DSceneEnvironment::setAoDistance(float aoDistance)
         return;
 
     m_aoDistance = aoDistance;
-    emit aoDistanceChanged(m_aoDistance);
+    emit aoDistanceChanged();
     update();
 }
 
@@ -447,7 +447,7 @@ void QQuick3DSceneEnvironment::setAoSoftness(float aoSoftness)
         return;
 
     m_aoSoftness = aoSoftness;
-    emit aoSoftnessChanged(m_aoSoftness);
+    emit aoSoftnessChanged();
     update();
 }
 
@@ -457,7 +457,7 @@ void QQuick3DSceneEnvironment::setAoDither(bool aoDither)
         return;
 
     m_aoDither = aoDither;
-    emit aoDitherChanged(m_aoDither);
+    emit aoDitherChanged();
     update();
 }
 
@@ -467,7 +467,7 @@ void QQuick3DSceneEnvironment::setAoSampleRate(int aoSampleRate)
         return;
 
     m_aoSampleRate = aoSampleRate;
-    emit aoSampleRateChanged(m_aoSampleRate);
+    emit aoSampleRateChanged();
     update();
 }
 
@@ -477,7 +477,7 @@ void QQuick3DSceneEnvironment::setAoBias(float aoBias)
         return;
 
     m_aoBias = aoBias;
-    emit aoBiasChanged(m_aoBias);
+    emit aoBiasChanged();
     update();
 }
 
@@ -491,7 +491,7 @@ void QQuick3DSceneEnvironment::setLightProbe(QQuick3DTexture *lightProbe)
     });
 
     m_lightProbe = lightProbe;
-    emit lightProbeChanged(m_lightProbe);
+    emit lightProbeChanged();
     update();
 }
 
@@ -501,7 +501,7 @@ void QQuick3DSceneEnvironment::setProbeBrightness(float probeBrightness)
         return;
 
     m_probeBrightness = probeBrightness;
-    emit probeBrightnessChanged(m_probeBrightness);
+    emit probeBrightnessChanged();
     update();
 }
 
@@ -511,7 +511,7 @@ void QQuick3DSceneEnvironment::setFastImageBasedLightingEnabled(bool fastImageBa
         return;
 
     m_fastImageBasedLightingEnabled = fastImageBasedLightingEnabled;
-    emit fastImageBasedLightingEnabledChanged(m_fastImageBasedLightingEnabled);
+    emit fastImageBasedLightingEnabledChanged();
     update();
 }
 
@@ -521,7 +521,7 @@ void QQuick3DSceneEnvironment::setProbeHorizon(float probeHorizon)
         return;
 
     m_probeHorizon = probeHorizon;
-    emit probeHorizonChanged(m_probeHorizon);
+    emit probeHorizonChanged();
     update();
 }
 
@@ -531,7 +531,7 @@ void QQuick3DSceneEnvironment::setProbeFieldOfView(float probeFieldOfView)
         return;
 
     m_probeFieldOfView = probeFieldOfView;
-    emit probeFieldOfViewChanged(m_probeFieldOfView);
+    emit probeFieldOfViewChanged();
     update();
 }
 
@@ -541,7 +541,7 @@ void QQuick3DSceneEnvironment::setDepthTestEnabled(bool depthTestEnabled)
         return;
 
     m_depthTestEnabled = depthTestEnabled;
-    emit depthTestEnabledChanged(m_depthTestEnabled);
+    emit depthTestEnabledChanged();
     update();
 }
 
@@ -551,7 +551,7 @@ void QQuick3DSceneEnvironment::setDepthPrePassEnabled(bool depthPrePassEnabled)
         return;
 
     m_depthPrePassEnabled = depthPrePassEnabled;
-    emit depthPrePassEnabledChanged(m_depthPrePassEnabled);
+    emit depthPrePassEnabledChanged();
     update();
 }
 
@@ -584,7 +584,7 @@ void QQuick3DSceneEnvironment::setTemporalAAEnabled(bool temporalAAEnabled)
         return;
 
     m_temporalAAEnabled = temporalAAEnabled;
-    emit temporalAAEnabledChanged(m_temporalAAEnabled);
+    emit temporalAAEnabledChanged();
     update();
 }
 
