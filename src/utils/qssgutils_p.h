@@ -137,7 +137,8 @@ Q_QUICK3DUTILS_EXPORT float radToDeg(const float a);
 Q_QUICK3DUTILS_EXPORT double radToDeg(const double a);
 Q_QUICK3DUTILS_EXPORT float degToRad(const float a);
 Q_QUICK3DUTILS_EXPORT double degToRad(const double a);
-
+inline Q_QUICK3DUTILS_EXPORT QVector3D degToRad(const QVector3D &v) { return QVector3D(degToRad(v.x()), degToRad(v.y()), degToRad(v.z())); }
+inline Q_QUICK3DUTILS_EXPORT QVector3D radToDeg(const QVector3D &v) { return QVector3D(radToDeg(v.x()), radToDeg(v.y()), radToDeg(v.z())); }
 
 QT_END_NAMESPACE
 
