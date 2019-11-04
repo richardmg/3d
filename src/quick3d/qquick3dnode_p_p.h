@@ -67,6 +67,7 @@ public:
     QMatrix4x4 calculateLocalTransformRightHanded();
     void calculateGlobalVariables();
     void markSceneTransformDirty();
+    inline QMatrix4x4 localRotationMatrix();
 
     void emitChangesToSceneTransform();
     bool isSceneTransformRelatedSignal(const QMetaMethod &signal) const;

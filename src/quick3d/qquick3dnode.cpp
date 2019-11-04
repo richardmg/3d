@@ -378,13 +378,6 @@ void QQuick3DNodePrivate::calculateGlobalVariables()
 
 QMatrix4x4 QQuick3DNodePrivate::calculateLocalTransformRightHanded()
 {
-    // Create a right-handed rotation transform from the radians.
-    const float radX = qDegreesToRadians(m_rotation.x());
-    const float radY = qDegreesToRadians(m_rotation.y());
-    const float radZ = qDegreesToRadians(m_rotation.z());
-    const QVector3D radians(radX, radY, radZ);
-    const QMatrix4x4 rotationTransform = QSSGEulerAngleConverter::createRotationMatrix(radians, EulerOrder(m_rotationorder));
-
     const QVector3D pivot = -m_pivot * m_scale;
     QMatrix4x4 localTransform;
 
@@ -396,7 +389,7 @@ QMatrix4x4 QQuick3DNodePrivate::calculateLocalTransformRightHanded()
     localTransform(1, 3) = pivot[1];
     localTransform(2, 3) = pivot[2];
 
-    localTransform = rotationTransform * localTransform;
+    localTransform = localRotationMatrix() * localTransform;
 
     localTransform(0, 3) += m_position[0];
     localTransform(1, 3) += m_position[1];
@@ -406,6 +399,18 @@ QMatrix4x4 QQuick3DNodePrivate::calculateLocalTransformRightHanded()
         mat44::flip(localTransform);
 
     return localTransform;
+}
+
+QMatrix4x4 QQuick3DNodePrivate::localRotationMatrix()
+{
+    QVector3D radians = degToRad(m_rotation);
+//    if (orientation() == LeftHanded) {
+//        // Need to convert rotation from left-handed (CW) to
+//        // right-handed (CCW) before using the QSSGEulerAngleConverter.
+//        radians *= -1;
+//    }
+
+    return QSSGEulerAngleConverter::createRotationMatrix(radians, EulerOrder(m_rotationorder));
 }
 
 QQuick3DObject::Type QQuick3DNode::type() const
