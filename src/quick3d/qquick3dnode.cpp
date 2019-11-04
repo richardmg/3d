@@ -871,4 +871,46 @@ QVector3D QQuick3DNode::mapDirectionFromNode(QQuick3DNode *node, const QVector3D
     return mapDirectionFromScene(node->mapDirectionToScene(localDirection));
 }
 
+/*!
+    Transforms \a localRotation from local space to scene space.
+
+    \sa mapRotationFromScene(), mapRotationToNode(), mapRotationFromNode()
+*/
+QVector3D QQuick3DNode::mapRotationToScene(const QVector3D &localRotation) const
+{
+    return sceneTransform() * localRotation;
+}
+
+/*!
+    Transforms \a sceneRotation from scene space to local space.
+
+    \sa mapRotationToScene(), mapRotationToNode(), mapRotationFromNode()
+*/
+QVector3D QQuick3DNode::mapRotationFromScene(const QVector3D &sceneRotationArg) const
+{
+    return sceneTransform().inverted() * sceneRotationArg;
+}
+
+/*!
+    Transforms \a localRotation from this nodes local space to the
+    local space of \a node.
+
+    \sa mapRotationFromNode(), mapRotationFromScene(), mapRotationToScene()
+*/
+QVector3D QQuick3DNode::mapRotationToNode(QQuick3DNode *node, const QVector3D &localRotation) const
+{
+    return node->mapRotationFromScene(mapRotationToScene(localRotation));
+}
+
+/*!
+    Transforms \a localRotation from the local space of \a node to the
+    local space of this node.
+
+    \sa mapRotationToNode(), mapRotationFromScene(), mapRotationToScene()
+*/
+QVector3D QQuick3DNode::mapRotationFromNode(QQuick3DNode *node, const QVector3D &localRotation) const
+{
+    return mapRotationFromScene(node->mapRotationToScene(localRotation));
+}
+
 QT_END_NAMESPACE
