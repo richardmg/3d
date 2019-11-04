@@ -139,7 +139,10 @@ public:
     Q_INVOKABLE QVector3D mapDirectionFromScene(const QVector3D &sceneDirection) const;
     Q_INVOKABLE QVector3D mapDirectionToNode(QQuick3DNode *node, const QVector3D &localDirection) const;
     Q_INVOKABLE QVector3D mapDirectionFromNode(QQuick3DNode *node, const QVector3D &localDirection) const;
-
+    Q_INVOKABLE QVector3D mapRotationToScene(const QVector3D &localRotation) const;
+    Q_INVOKABLE QVector3D mapRotationFromScene(const QVector3D &sceneRotation) const;
+    Q_INVOKABLE QVector3D mapRotationToNode(QQuick3DNode *node, const QVector3D &localRotation) const;
+    Q_INVOKABLE QVector3D mapRotationFromNode(QQuick3DNode *node, const QVector3D &localRotation) const;
 
 protected:
     void connectNotify(const QMetaMethod &signal) override;
