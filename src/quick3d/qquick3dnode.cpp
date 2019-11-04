@@ -662,6 +662,43 @@ void QQuick3DNode::setVisible(bool visible)
     update();
 }
 
+void QQuick3DNode::rotate(qreal degrees, const QVector3D &axis, TransformSpace space)
+{
+    Q_D(QQuick3DNode);
+
+    const QQuaternion addRotationQuat = QQuaternion::fromAxisAndAngle(axis, float(degrees));
+    const QMatrix4x4 addRotationMatrix = QMatrix4x4(addRotationQuat.toRotationMatrix());
+    QMatrix4x4 newRotationMatrix;
+
+    switch (space) {
+    case LocalSpace:
+        newRotationMatrix = d->localRotationMatrix() * addRotationMatrix;
+        break;
+    case ParentSpace:
+        newRotationMatrix = addRotationMatrix;
+        break;
+    case SceneSpace:
+        if (const auto parent = parentNode()) {
+            const QMatrix4x4 pm = d->localRotationMatrix();
+            const QMatrix4x4 prm = parent->sceneTransform(); // can contain scale problems
+            newRotationMatrix = prm.inverted() * addRotationMatrix * prm * pm;
+        } else {
+            newRotationMatrix = addRotationMatrix;
+        }
+        break;
+    }
+
+    const QVector3D newRotationEuler = mat44::getRotation(newRotationMatrix, EulerOrder(d->m_rotationorder));
+
+    if (d->m_rotation == newRotationEuler)
+        return;
+
+    d->m_rotation = newRotationEuler;
+    d->markSceneTransformDirty();
+    emit rotationChanged();
+    update();
+}
+
 QSSGRenderGraphObject *QQuick3DNode::updateSpatialNode(QSSGRenderGraphObject *node)
 {
     Q_D(QQuick3DNode);
