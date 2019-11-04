@@ -50,20 +50,43 @@
 
 import QtQuick 2.0
 import QtQuick3D 1.0
-import MouseArea3D 0.1
 
 Node {
     id: overlayNode
 
     property View3D view3D
-    property Node target: parent
     property bool autoScale: true
+    property Node target: parent
+    property var targetInitialScale: undefined
 
-    // Read-only
-    property real relativeScale: 1
+    //////////////////////////////////////
+
+    property real _scaleMultiplier: 1
 
     onSceneTransformChanged: updateScale()
     onAutoScaleChanged: updateScale()
+
+    on_ScaleMultiplierChanged: {
+        if (targetInitialScale == undefined)
+            return;
+
+        target.scale = Qt.vector3d(
+                    targetInitialScale.x * _scaleMultiplier,
+                    targetInitialScale.y * _scaleMultiplier,
+                    targetInitialScale.z * _scaleMultiplier)
+    }
+
+    Component.onCompleted: {
+        // targetInitialScale is the scale assigned to the target.
+        // Since this component will continuously change the targets
+        // scale, we need to store the inital scale.
+        if (targetInitialScale != undefined)
+            return
+
+        var ts = target.scale
+        targetInitialScale = Qt.vector3d(ts.x, ts.y, ts.z)
+    }
+
     Connections {
         target: view3D.camera
         onSceneTransformChanged: updateScale()
@@ -74,36 +97,20 @@ Node {
         onFirstFrameReady: updateScale()
     }
 
-    function getScale(baseScale)
-    {
-        return Qt.vector3d(baseScale.x * relativeScale, baseScale.y * relativeScale, baseScale.z * relativeScale)
-    }
-
     function updateScale()
     {
         if (!autoScale) {
-            target.scale = Qt.vector3d(1, 1, 1)
+            _scaleMultiplier = 1
         } else {
             // Calculate the distance independent scale by first mapping the targets position to
             // the view. We then measure up a distance on the view (100px) that we use as an "anchor"
             // distance. Map the two positions back to the target node, and measure the distance
             // between them now, in the 3D scene. The difference of the two distances, view and scene, will
             // tell us what the distance independent scale should be.
-            var posInView1 = view3D.mapFrom3DScene(scenePosition)
-            var posInView2 = Qt.vector3d(posInView1.x + 100, posInView1.y, posInView1.z)
-
-            var rayPos1 = view3D.mapTo3DScene(Qt.vector3d(posInView2.x, posInView2.y, 0))
-            var rayPos2 = view3D.mapTo3DScene(Qt.vector3d(posInView2.x, posInView2.y, 10))
-
-            var planeNormal = view3D.camera.forward
-            var rayHitPos = helper.rayIntersectsPlane(rayPos1, rayPos2, scenePosition, planeNormal)
-
-            relativeScale = scenePosition.minus(rayHitPos).length() / 100
+            var dist = target.scenePosition.minus(view3D.camera.scenePosition).length()
+            var scenePos1 = view3D.camera.mapFromViewport(Qt.vector3d(0, 0, dist));
+            var scenePos2 = view3D.camera.mapFromViewport(Qt.vector3d(0.5, 0, dist));
+            _scaleMultiplier = scenePos1.minus(scenePos2).length() / 200
         }
-    }
-
-    MouseArea3D {
-        id: helper
-        view3D: overlayNode.view3D
     }
 }

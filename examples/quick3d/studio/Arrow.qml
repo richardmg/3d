@@ -50,84 +50,94 @@
 
 import QtQuick 2.0
 import QtQuick3D 1.0
-import MouseArea3D 0.1
 
 Model {
     id: arrow
     rotationOrder: Node.XYZr
     source: "meshes/Arrow.mesh"
+    pickable: true
 
-    property alias color: material.emissiveColor
-    property Node targetNode: null
+    property Node gizmoRoot
+    property Node gizmoAxisRoot: arrow
+    property int axis: kNoGizmoAxis
 
-    readonly property bool hovering: mouseAreaYZ.hovering || mouseAreaXZ.hovering
+    property color color: "white"
 
     property var _pointerPosPressed
+    property point _mouseStartPos
     property var _targetStartPos
+
+    property int _draggingOnBackside
 
     materials: DefaultMaterial {
         id: material
-        emissiveColor: mouseAreaFront.hovering ? "white" : Qt.rgba(1.0, 0.0, 0.0, 1.0)
+        emissiveColor: currentGizmoAxisNode == arrow ? Qt.lighter(color) : color
         lighting: DefaultMaterial.NoLighting
     }
 
-    function handlePressed(mouseArea, pointerPosition)
+    function startDrag(mousePos)
     {
-        if (!targetNode)
-            return;
+        _mouseStartPos = mousePos
+        var sp = nodeBeingManipulated.position
+        _targetStartPos = Qt.vector3d(sp.x, sp.y, sp.z)
 
-        var maskedPosition = Qt.vector3d(pointerPosition.x, 0, 0)
-        _pointerPosPressed = mouseArea.mapPositionToScene(maskedPosition)
-        var sp = targetNode.scenePosition
-        _targetStartPos = Qt.vector3d(sp.x, sp.y, sp.z);
+        var relCamPos = overlayView.camera.mapPositionToNode(arrow, Qt.vector3d(0, 0, 0));
+        _draggingOnBackside = relCamPos.z > 0 ? -1 : 1
+        if (nodeBeingManipulated.orientation === Node.RightHanded)
+            _draggingOnBackside *= -1;
+
+        print(_draggingOnBackside)
     }
 
-    function handleDragged(mouseArea, pointerPosition)
+    function continueDrag(mousePos)
     {
-        if (!targetNode)
-            return;
+        var deltaX = mousePos.x - _mouseStartPos.x
+        var deltaY = mousePos.y - _mouseStartPos.y
+        deltaY *= -1 // Convert
 
-        var maskedPosition = Qt.vector3d(pointerPosition.x, 0, 0)
-        var scenePointerPos = mouseArea.mapPositionToScene(maskedPosition)
-        var sceneRelativeDistance = Qt.vector3d(
-                    scenePointerPos.x - _pointerPosPressed.x,
-                    scenePointerPos.y - _pointerPosPressed.y,
-                    scenePointerPos.z - _pointerPosPressed.z)
+//        deltaX *= _draggingOnBackside
+//        deltaY *= _draggingOnBackside
 
-        var newScenePos = Qt.vector3d(
-                    _targetStartPos.x + sceneRelativeDistance.x,
-                    _targetStartPos.y + sceneRelativeDistance.y,
-                    _targetStartPos.z + sceneRelativeDistance.z)
+        var newPos = Qt.vector3d(_targetStartPos.x + deltaX, 0, 0)
 
-        var posInParent = targetNode.parent.mapPositionFromScene(newScenePos)
-        targetNode.position = posInParent
+//        print(_targetStartPos.y + deltaY, newPos)
+
+//        var posInParent = nodeBeingManipulated.parent.mapPositionFromScene(newScenePos)
+        nodeBeingManipulated.position = newPos
     }
 
-    MouseArea3D {
-        id: mouseAreaYZ
-        view3D: overlayView
-        x: 0
-        y: -1.5
-        width: 12
-        height: 3
-        rotation: Qt.vector3d(0, 90, 0)
-        grabsMouse: targetNode
-        onPressed: arrow.handlePressed(mouseAreaYZ, pointerPosition)
-        onDragged: arrow.handleDragged(mouseAreaYZ, pointerPosition)
-    }
 
-    MouseArea3D {
-        id: mouseAreaXZ
-        view3D: overlayView
-        x: 0
-        y: -1.5
-        width: 12
-        height: 3
-        rotation: Qt.vector3d(90, 90, 0)
-        grabsMouse: targetNode
-        onPressed: arrow.handlePressed(mouseAreaXZ, pointerPosition)
-        onDragged: arrow.handleDragged(mouseAreaXZ, pointerPosition)
-    }
+//    function handlePressed(mouseArea, pointerPosition)
+//    {
+//        if (!targetNode)
+//            return;
+
+//        var maskedPosition = Qt.vector3d(pointerPosition.x, 0, 0)
+//        _pointerPosPressed = mouseArea.mapPositionToScene(maskedPosition)
+//        var sp = targetNode.scenePosition
+//        _targetStartPos = Qt.vector3d(sp.x, sp.y, sp.z);
+//    }
+
+//    function handleDragged(mouseArea, pointerPosition)
+//    {
+//        if (!targetNode)
+//            return;
+
+//        var maskedPosition = Qt.vector3d(pointerPosition.x, 0, 0)
+//        var scenePointerPos = mouseArea.mapPositionToScene(maskedPosition)
+//        var sceneRelativeDistance = Qt.vector3d(
+//                    scenePointerPos.x - _pointerPosPressed.x,
+//                    scenePointerPos.y - _pointerPosPressed.y,
+//                    scenePointerPos.z - _pointerPosPressed.z)
+
+//        var newScenePos = Qt.vector3d(
+//                    _targetStartPos.x + sceneRelativeDistance.x,
+//                    _targetStartPos.y + sceneRelativeDistance.y,
+//                    _targetStartPos.z + sceneRelativeDistance.z)
+
+//        var posInParent = targetNode.parent.mapPositionFromScene(newScenePos)
+//        targetNode.position = posInParent
+//    }
 
 }
 

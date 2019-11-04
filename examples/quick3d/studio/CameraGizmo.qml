@@ -87,7 +87,7 @@ View3D {
         zLabel.y = zLabelViewPos.y - zLabel.height
     }
 
-    scene: Node {
+    importScene: Node {
         PerspectiveCamera {
             id: localCamera
             position: targetCamera.scenePosition
@@ -100,6 +100,7 @@ View3D {
                 target: localCamera
                 onSceneTransformChanged: updateGizmo()
             }
+            scale: Qt.vector3d(10, 10, 10)
         }
 
         Connections {

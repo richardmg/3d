@@ -59,15 +59,28 @@ import QtGraphicalEffects 1.0
 import QtQuick.Controls 2.5
 import QtQuick.Layouts 1.12
 
-import MouseArea3D 0.1
-
 ApplicationWindow {
     id: window
     width: 640
     height: 480
     visible: true
 
+    property alias overlayView: overlayView
+
+    property color xAxisGizmoColor: Qt.rgba(1, 0, 0, 1)
+    property color yAxisGizmoColor: Qt.rgba(0, 0, 1, 1)
+    property color zAxisGizmoColor: Qt.rgba(0, 0.8, 0, 1)
+
     property Node nodeBeingManipulated: pot1
+
+    property Node currentGizmoNode: rotationGizmo
+    property Node currentGizmoAxisNode: null
+    property bool inGizmoAxisDragMode: false
+
+    property bool globalOrientation: globalControl.checked
+
+    readonly property int kNoGizmoAxis: -1
+
     signal firstFrameReady
 
     Timer {
@@ -157,18 +170,20 @@ ApplicationWindow {
         }
 
         MoveGizmo {
-            id: targetGizmo
-            scale: autoScaleControl.checked ? autoScale.getScale(Qt.vector3d(5, 5, 5)) : Qt.vector3d(5, 5, 5)
-            highlightOnHover: true
-            targetNode: window.nodeBeingManipulated
-            position: window.nodeBeingManipulated.scenePosition
+            id: moveGizmo
+            visible: toolGroup.checkedButton == translateButton
             rotation: globalControl.checked ? Qt.vector3d(0, 0, 0) : window.nodeBeingManipulated.sceneRotation
+            position: window.nodeBeingManipulated.scenePosition
+            scale: Qt.vector3d(5, 5, 5)
         }
 
-        AutoScaleHelper {
-            id: autoScale
-            view3D: overlayView
-            position: targetGizmo.scenePosition
+        RotationGizmo {
+            id: rotationGizmo
+            visible: toolGroup.checkedButton == rotateButton
+            position: window.nodeBeingManipulated.scenePosition
+            rotation: globalControl.checked ? Qt.vector3d(0, 0, 0) : window.nodeBeingManipulated.sceneRotation
+            rotationOrder: window.nodeBeingManipulated.rotationOrder
+            scale: Qt.vector3d(70, 70, 70)
         }
     }
 
@@ -185,14 +200,14 @@ ApplicationWindow {
             id: mainView
             anchors.fill: parent
             camera: perspectiveControl.checked ? camera1 : camera2
-            scene: mainScene
+            importScene: mainScene
         }
 
         View3D {
             id: overlayView
             anchors.fill: parent
             camera: perspectiveControl.checked ? overlayCamera1 : overlayCamera2
-            scene: overlayScene
+            importScene: overlayScene
         }
 
         CameraGizmo {
@@ -252,19 +267,43 @@ ApplicationWindow {
             acceptedButtons: Qt.RightButton
         }
 
+        HoverHandler {
+            onPointChanged: {
+                // Check what is under the mouse in the overlay view
+                var mousePressed = point.pressedButtons === Qt.LeftButton;
+
+                if (!mousePressed)
+                    inGizmoAxisDragMode = false
+
+                if (inGizmoAxisDragMode) {
+                    currentGizmoAxisNode.continueDrag(point.position)
+                } else {
+                    // Start a new drag?
+                    var pickResult = overlayView.pick(point.position.x, point.position.y)
+                    var nodeUnderMouse = pickResult.objectHit
+                    if (!nodeUnderMouse || !nodeUnderMouse.visible) {
+                        currentGizmoAxisNode = null
+                    } else {
+                        var gizmoPart = nodeUnderMouse.gizmoAxisRoot
+                        if (!gizmoPart || !gizmoPart.gizmoRoot.visible)
+                            return;
+                        currentGizmoAxisNode = gizmoPart
+                        if (mousePressed) {
+                            inGizmoAxisDragMode = true
+                            gizmoPart.startDrag(point.position)
+                        }
+                    }
+                }
+            }
+        }
+
         TapHandler {
             onTapped: {
-                // Pick a pot, and use it as target for the gizmo
+                // Check if the user selected a new object in the scene.
+                // If so, we change nodeBeingManipulated, which will also move the gizmo
                 var pickResult = mainView.pick(point.position.x, point.position.y)
-                print("picked in mainView:", pickResult.objectHit)
-
-                if (pickResult.objectHit && pickResult.objectHit !== axisGrid)
+                if (pickResult.objectHit)
                     nodeBeingManipulated = pickResult.objectHit
-
-                // Dummy test for now, just to show that it currently doesn't work to pick models
-                // from two different views at the same time. On of the calls will fail.
-                var pickResult2 = overlayView.pick(point.position.x, point.position.y)
-                print("picked in overlayView:", pickResult2.objectHit)
             }
         }
     }
@@ -276,6 +315,35 @@ ApplicationWindow {
         ColumnLayout {
             anchors.fill: parent
 
+            ButtonGroup {
+                id: toolGroup
+                buttons: toolRow.children
+            }
+
+            Row {
+                id: toolRow
+                spacing: 1
+
+                Button {
+                    id: translateButton
+                    text: "Translate"
+                    checkable: true
+                    checked: true
+                }
+
+                Button {
+                    id: rotateButton
+                    text: "Rotate"
+                    checkable: true
+                }
+
+                Button {
+                    id: scaleButton
+                    text: "Scale"
+                    checkable: true
+                }
+            }
+
             CheckBox {
                 id: globalControl
                 checked: true
@@ -283,7 +351,7 @@ ApplicationWindow {
                 Text {
                     anchors.left: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    text: qsTr("Use global orientation")
+                    text: qsTr("Use scene orientation")
                 }
             }
 
@@ -301,17 +369,6 @@ ApplicationWindow {
             }
 
             CheckBox {
-                id: autoScaleControl
-                checked: true
-                onCheckedChanged: wasd.forceActiveFocus()
-                Text {
-                    anchors.left: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: qsTr("Use fixed-sized gizmo")
-                }
-            }
-
-            CheckBox {
                 id: showLabelsControl
                 checked: true
                 onCheckedChanged: wasd.forceActiveFocus()
@@ -325,12 +382,46 @@ ApplicationWindow {
             Item {
                 Layout.fillHeight: true
             }
+
+            Row {
+                spacing: 1
+                Button {
+                    text: "Camera<br>front"
+                    onClicked: {
+                        var dist = camera1.scenePosition.minus(nodeBeingManipulated.scenePosition).length()
+                        camera1.rotation = Qt.vector3d(0, 0, 0)
+                        camera1.position = nodeBeingManipulated.position.plus(Qt.vector3d(0, 0, -dist))
+                        wasd.forceActiveFocus()
+                    }
+                }
+
+                Button {
+                    text: "Camera<br>right"
+                    onClicked: {
+                        var dist = camera1.scenePosition.minus(nodeBeingManipulated.scenePosition).length()
+                        camera1.rotation = Qt.vector3d(0, -90, 0)
+                        camera1.position = nodeBeingManipulated.position.plus(Qt.vector3d(dist, 0, 0))
+                        wasd.forceActiveFocus()
+                    }
+                }
+
+                Button {
+                    text: "Camera<br>top"
+                    onClicked: {
+                        var dist = camera1.scenePosition.minus(nodeBeingManipulated.scenePosition).length()
+                        camera1.rotation = Qt.vector3d(90, 0, 0)
+                        camera1.position = nodeBeingManipulated.position.plus(Qt.vector3d(0, dist, 0))
+                        wasd.forceActiveFocus()
+                    }
+                }
+            }
         }
     }
 
     Text {
-        text: "Camera: W,A,S,D,R,F,right mouse drag"
+        text: "Camera: W,A,S,D,R,F,right mouse drag "
         anchors.bottom: parent.bottom
+        anchors.right: parent.right
     }
 
 }

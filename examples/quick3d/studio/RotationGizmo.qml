@@ -47,39 +47,35 @@
 ** $QT_END_LICENSE$
 **
 ****************************************************************************/
-
 import QtQuick 2.0
 import QtQuick3D 1.0
 
 Node {
-    id: moveGizmo
-    property bool highlightOnHover: false
+    id: rotationGizmo
+    property alias torusX: torusXAxis
+    property alias torusY: torusYAxis
+    property alias torusZ: torusZAxis
 
-    property alias arrowX: arrowX
-    property alias arrowY: arrowY
-    property alias arrowZ: arrowZ
-
-    Arrow {
-        id: arrowX
-        gizmoRoot: moveGizmo
+    Torus360 {
+        id: torusXAxis
+        gizmoRoot: rotationGizmo
         axis: Qt.XAxis
-        rotation: Qt.vector3d(0, -90, 0)
+        rotation: Qt.vector3d(0, 90, 0)
         color: xAxisGizmoColor
     }
 
-    Arrow {
-        id: arrowY
-        gizmoRoot: moveGizmo
+    Torus360 {
+        id: torusYAxis
+        gizmoRoot: rotationGizmo
         axis: Qt.YAxis
         rotation: Qt.vector3d(90, 0, 0)
         color: yAxisGizmoColor
     }
 
-    Arrow {
-        id: arrowZ
-        gizmoRoot: moveGizmo
+    Torus360 {
+        id: torusZAxis
+        gizmoRoot: rotationGizmo
         axis: Qt.ZAxis
-        rotation: Qt.vector3d(0, 180, 0)
         color: zAxisGizmoColor
     }
 

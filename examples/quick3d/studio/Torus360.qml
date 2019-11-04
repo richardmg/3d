@@ -47,43 +47,94 @@
 ** $QT_END_LICENSE$
 **
 ****************************************************************************/
-
-import QtQuick 2.0
 import QtQuick3D 1.0
+import QtQuick 2.12
 
 Node {
-    id: moveGizmo
-    property bool highlightOnHover: false
+    id: torus360
 
-    property alias arrowX: arrowX
-    property alias arrowY: arrowY
-    property alias arrowZ: arrowZ
+    property Node gizmoRoot
+    property int axis: kNoGizmoAxis
+    property color color: "white"
 
-    Arrow {
-        id: arrowX
-        gizmoRoot: moveGizmo
-        axis: Qt.XAxis
-        rotation: Qt.vector3d(0, -90, 0)
-        color: xAxisGizmoColor
+    property var _axis
+    property real _prevMouseAngle
+    property int _draggingOnBackside
+
+    function startDrag(mousePos)
+    {
+        var center = overlayView.mapFrom3DScene(nodeBeingManipulated.scenePosition)
+        var deltaX = mousePos.x - center.x
+        var deltaY = mousePos.y - center.y
+        var rad = Math.atan2(deltaY, deltaX);
+        _prevMouseAngle = rad * (180 / Math.PI)
+
+        if (axis === Qt.XAxis)
+            _axis = Qt.vector3d(1, 0, 0)
+        else if (axis === Qt.YAxis)
+            _axis = Qt.vector3d(0, 1, 0)
+        else
+            _axis = Qt.vector3d(0, 0, 1)
+
+        var relCamPos = overlayView.camera.mapPositionToNode(torus360, Qt.vector3d(0, 0, 0));
+        _draggingOnBackside = relCamPos.z > 0 ? -1 : 1
+        if (nodeBeingManipulated.orientation === Node.RightHanded)
+            _draggingOnBackside *= -1;
+
+        print(_draggingOnBackside)
     }
 
-    Arrow {
-        id: arrowY
-        gizmoRoot: moveGizmo
-        axis: Qt.YAxis
-        rotation: Qt.vector3d(90, 0, 0)
-        color: yAxisGizmoColor
+    function continueDrag(mousePos)
+    {
+        var center = overlayView.mapFrom3DScene(nodeBeingManipulated.scenePosition)
+        var deltaX = mousePos.x - center.x
+        var deltaY = mousePos.y - center.y
+        var rad = Math.atan2(deltaY, deltaX);
+        var mouseAngle = rad * (180 / Math.PI)
+
+        var flipX = deltaY > 0 ? 1 : -1
+        var flipY = deltaX > 0 ? 1 : -1
+
+        var degrees = mouseAngle - _prevMouseAngle
+        degrees *= _draggingOnBackside
+        _prevMouseAngle = mouseAngle
+
+        nodeBeingManipulated.rotate(-degrees, _axis, globalOrientation ? Node.SceneSpace : Node.LocalSpace)
     }
 
-    Arrow {
-        id: arrowZ
-        gizmoRoot: moveGizmo
-        axis: Qt.ZAxis
-        rotation: Qt.vector3d(0, 180, 0)
-        color: zAxisGizmoColor
+    Torus90 {
+        id: upSegment
+        pivot: Qt.vector3d(0, -1, 0)
+        color: torus360.color
+        gizmoAxisRoot: torus360
+        pickable: true
     }
 
-    AutoScaleHelper {
-        view3D: overlayView
+    Torus90 {
+        id: leftSegment
+        pivot: Qt.vector3d(0, -1, 0)
+        rotation: Qt.vector3d(0, 0, 90)
+        color: torus360.color
+        gizmoAxisRoot: torus360
+        pickable: true
     }
+
+    Torus90 {
+        id: bottomSegment
+        pivot: Qt.vector3d(0, -1, 0)
+        rotation: Qt.vector3d(0, 0, 180)
+        color: torus360.color
+        gizmoAxisRoot: torus360
+        pickable: true
+    }
+
+    Torus90 {
+        id: rightSegment
+        pivot: Qt.vector3d(0, -1, 0)
+        rotation: Qt.vector3d(0, 0, 270)
+        color: torus360.color
+        gizmoAxisRoot: torus360
+        pickable: true
+    }
+
 }
