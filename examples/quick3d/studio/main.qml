@@ -145,11 +145,12 @@ ApplicationWindow {
 
         Model {
             id: pot2
-            x: pot1.scenePosition.x + 50
+            x: pot1.scenePosition.x + 100
             y: pot1.scenePosition.y
             z: pot1.scenePosition.z
             objectName: "Second pot"
-            rotation: Qt.vector3d(0, 0, 0)
+            rotation: pot1.sceneRotation
+            rotationOrder: pot1.rotationOrder
             pickable: true
             source: "meshes/Teapot.mesh"
             scale: Qt.vector3d(20, 20, 20)
@@ -157,15 +158,15 @@ ApplicationWindow {
                 diffuseColor: "white"
             }
 
-            Connections {
-                target: pot1
-                onSceneTransformChanged: {
-                    pot2.rotationOrder = pot1.rotationOrder
-                    pot2.rotation = pot1.sceneRotation
-                    //pot2.rotation = pot2.parent.mapRotationFromScene(pot1.sceneRotation)
-                    //pot2.lookAt(pot3.position, Qt.vector3d(0, 1, 0), Node.ParentSpace)
-                }
-            }
+//            Connections {
+//                target: pot1
+//                onSceneTransformChanged: {
+////                    pot2.rotationOrder = pot1.rotationOrder
+////                    pot2.rotation = pot1.sceneRotation
+//                    //pot2.rotation = pot2.parent.mapRotationFromScene(pot1.sceneRotation)
+//                    //pot2.lookAt(pot3.position, Qt.vector3d(0, 1, 0), Node.ParentSpace)
+//                }
+//            }
 
             //            Timer {
             //                running: true

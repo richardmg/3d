@@ -307,13 +307,13 @@ QVector3D QQuick3DNode::sceneRotation() const
     // space. But we want to know the opposite, what rotation a scene space
     // vector should have to have the same visual rotation as the local
     // space of this node. So we need the inverse.
-    QMatrix4x4 m = sceneTransformRightHanded().inverted();
+    QMatrix4x4 m = sceneTransform().inverted();
 
-    if (d->m_orientation == LeftHanded) {
-        // This node is left handed, but m is right handed. So we need to
-        // flip it before we read out the left handed rotation.
-        mat44::flip(m);
-    }
+//    if (d->m_orientation == LeftHanded) {
+//        // This node is left handed, but m is right handed. So we need to
+//        // flip it before we read out the left handed rotation.
+//        mat44::flip(m);
+//    }
 
     return mat44::getRotation(m, EulerOrder(d->m_rotationorder));
 
@@ -583,46 +583,16 @@ void QQuick3DNode::setRotation(const QVector3D &rotation, TransformSpace space)
 {
     Q_D(QQuick3DNode);
 
+    Q_UNUSED(space)
+
     if (d->m_rotation == rotation)
         return;
 
     d->m_rotation = rotation;
 
-    /*
-        - When converting from euler to quat, I need to use the reverse rotation order when
-            I pass the rotation to the converter.
-            But the backend node is still using the normal order when calculating the rotation
-            matrix. This needs to be figured out!!
-
-        - When using the converter here, I need to convert CW to CCW. But the backend node
-            doesnt do that. Why?
-
-        - The sceneRotation goes wrong independt of the bakend. The backend only uses m_rotation, and
-            not the quaternion, so it's currently unaffected by this work (except we have changed the
-            rotation order in the backend as well).
-
-        - The test case I used was wrong all along, since first rotating parent, then child, does not
-            produce the same result as rotating only the child with the combined rotation. Becuse the
-            rotation order will be different.
-
-        - Its also not weird that quat.toRotationMatrix() produces the same matrix as the converter, since
-            the quat got its matrix from the converter in the first place. But do the matrices end
-            up differently if I rotate in-between?
-
-
-    */
-
-    QVector3D radians = degToRad(rotation);
-    if (orientation() == LeftHanded) {
-        // Need to convert rotation from left-handed (CW) to
-        // right-handed (CCW) before using the QSSGEulerAngleConverter.
-        radians *= -1;
-    }
-    QMatrix4x4 rotationTransform = QSSGEulerAngleConverter::createRotationMatrix(radians, EulerOrder(d->m_rotationorder));
-    auto quat = QQuaternion::fromRotationMatrix(mat44::getUpper3x3(rotationTransform));
-    d_func()->setRotation(quat, space);
-
     emit rotationChanged();
+    d->markSceneTransformDirty();
+    update();
 }
 
 void QQuick3DNodePrivate::setRotation(QQuaternion rotation, QQuick3DNode::TransformSpace space)
@@ -660,33 +630,49 @@ void QQuick3DNode::rotate(qreal degrees, const QVector3D &axis, TransformSpace s
 {
     Q_D(QQuick3DNode);
 
-    const RotationOrder prevOrder = d->m_rotationorder;
     const QVector3D prevRotation = d->m_rotation;
-    const QQuaternion newRotation = QQuaternion::fromAxisAndAngle(axis, float(degrees));
 
-    // To be able to rotate around an arbitrary axis, we need to
-    // change rotation order to be be what QQuaternion uses.
-    d->m_rotationorder = QQuick3DNode::ZXYr;
+    QVector3D radians = degToRad(d->m_rotation);
+//    if (orientation() == LeftHanded) {
+//        // Need to convert rotation from left-handed (CW) to
+//        // right-handed (CCW) before using the QSSGEulerAngleConverter.
+//        radians *= -1;
+//    }
+
+    const QMatrix4x4 currRotationMatrix = QSSGEulerAngleConverter::createRotationMatrix(radians, EulerOrder(d->m_rotationorder));
+    const QQuaternion currRotation = QQuaternion::fromRotationMatrix(mat44::getUpper3x3(currRotationMatrix));
+    const QQuaternion addRotation = QQuaternion::fromAxisAndAngle(axis, float(degrees));
+    QQuaternion newRotation;
 
     switch (space) {
     case LocalSpace:
-        d->setRotation(newRotation, LocalSpace);
+        newRotation = currRotation * addRotation;
         break;
     case ParentSpace:
-        d->setRotation(newRotation * d->m_quaternion, ParentSpace);
+        newRotation = addRotation;
         break;
     case SceneSpace:
-        const QQuaternion sr = d->sceneRotation();
-        d->setRotation(d->m_quaternion * sr.inverted() * newRotation * sr, ParentSpace);
+//        if (const auto parent = parentNode()) {
+//            const auto parent_d = QQuick3DNodePrivate::get(parent);
+//            newRotation = parent_d->sceneRotation().inverted() * m_quaternion;
+//        } else {
+//            newRotation = addRotation;
+//        }
+//        break;
+//        const QQuaternion sr = d->sceneRotation();
+//        d->setRotation(d->m_quaternion * sr.inverted() * newRotation * sr, ParentSpace);
         break;
     }
 
-    d->m_rotation = d->m_quaternion.toEulerAngles();
+    QMatrix4x4 m = QMatrix4x4(newRotation.toRotationMatrix());
+    d->m_rotation = mat44::getRotation(m, EulerOrder(d->m_rotationorder));
 
-    if (d->m_rotationorder != prevOrder)
-        emit rotationOrderChanged();
-    if (d->m_rotation != prevRotation)
-        emit rotationChanged();
+    if (d->m_rotation == prevRotation)
+        return;
+
+    emit rotationChanged();
+    d->markSceneTransformDirty();
+    update();
 }
 
 void QQuick3DNode::setPosition(const QVector3D &position)
