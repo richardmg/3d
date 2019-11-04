@@ -302,22 +302,7 @@ QVector3D QQuick3DNode::scenePosition() const
 */
 QVector3D QQuick3DNode::sceneRotation() const
 {
-    Q_D(const QQuick3DNode);
-    // The scene transform tells how to rotate a local vector into scene
-    // space. But we want to know the opposite, what rotation a scene space
-    // vector should have to have the same visual rotation as the local
-    // space of this node. So we need the inverse.
-    QMatrix4x4 m = sceneTransform().inverted();
-
-//    if (d->m_orientation == LeftHanded) {
-//        // This node is left handed, but m is right handed. So we need to
-//        // flip it before we read out the left handed rotation.
-//        mat44::flip(m);
-//    }
-
-    return mat44::getRotation(m, EulerOrder(d->m_rotationorder));
-
-//    return d_func()->sceneRotation().toEulerAngles();
+    return mat44::getRotation(sceneTransform(), EulerOrder(d_func()->m_rotationorder));
 }
 
 QQuaternion QQuick3DNodePrivate::sceneRotation() const
@@ -630,8 +615,6 @@ void QQuick3DNode::rotate(qreal degrees, const QVector3D &axis, TransformSpace s
 {
     Q_D(QQuick3DNode);
 
-    const QVector3D prevRotation = d->m_rotation;
-
     QVector3D radians = degToRad(d->m_rotation);
 //    if (orientation() == LeftHanded) {
 //        // Need to convert rotation from left-handed (CW) to
@@ -640,36 +623,34 @@ void QQuick3DNode::rotate(qreal degrees, const QVector3D &axis, TransformSpace s
 //    }
 
     const QMatrix4x4 currRotationMatrix = QSSGEulerAngleConverter::createRotationMatrix(radians, EulerOrder(d->m_rotationorder));
-    const QQuaternion currRotation = QQuaternion::fromRotationMatrix(mat44::getUpper3x3(currRotationMatrix));
-    const QQuaternion addRotation = QQuaternion::fromAxisAndAngle(axis, float(degrees));
-    QQuaternion newRotation;
+    const QQuaternion addRotationQuat = QQuaternion::fromAxisAndAngle(axis, float(degrees));
+    const QMatrix4x4 addRotationMatrix = QMatrix4x4(addRotationQuat.toRotationMatrix());
+    QMatrix4x4 newRotationMatrix;
 
     switch (space) {
     case LocalSpace:
-        newRotation = currRotation * addRotation;
+        newRotationMatrix = currRotationMatrix * addRotationMatrix;
         break;
     case ParentSpace:
-        newRotation = addRotation;
+        newRotationMatrix = addRotationMatrix;
         break;
     case SceneSpace:
-//        if (const auto parent = parentNode()) {
-//            const auto parent_d = QQuick3DNodePrivate::get(parent);
-//            newRotation = parent_d->sceneRotation().inverted() * m_quaternion;
-//        } else {
-//            newRotation = addRotation;
-//        }
-//        break;
-//        const QQuaternion sr = d->sceneRotation();
-//        d->setRotation(d->m_quaternion * sr.inverted() * newRotation * sr, ParentSpace);
+        if (const auto parent = parentNode()) {
+            const QMatrix4x4 st = sceneTransform();
+            const QMatrix4x4 pst = parent->sceneTransform();
+            newRotationMatrix = pst.inverted() * currRotationMatrix * st.inverted() * addRotationMatrix * st;
+        } else {
+            newRotationMatrix = addRotationMatrix;
+        }
         break;
     }
 
-    QMatrix4x4 m = QMatrix4x4(newRotation.toRotationMatrix());
-    d->m_rotation = mat44::getRotation(m, EulerOrder(d->m_rotationorder));
+    const QVector3D newRotationEuler = mat44::getRotation(newRotationMatrix, EulerOrder(d->m_rotationorder));
 
-    if (d->m_rotation == prevRotation)
+    if (d->m_rotation == newRotationEuler)
         return;
 
+    d->m_rotation = newRotationEuler;
     emit rotationChanged();
     d->markSceneTransformDirty();
     update();
