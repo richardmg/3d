@@ -47,41 +47,37 @@
 ** $QT_END_LICENSE$
 **
 ****************************************************************************/
-
-import QtQuick 2.0
 import QtQuick3D 1.0
+import QtQuick 2.12
+import MouseArea3D 0.1
 
-Model {
-    id: arrow
-    rotationOrder: Node.XYZr
-    source: "meshes/Arrow.mesh"
-    pickable: true
+Node {
+    id: torus360
 
     property Node gizmoRoot
-    property Node gizmoAxisRoot: arrow
     property int axis: kNoGizmoAxis
-
     property color color: "white"
 
-    property var _pointerPosPressed
-    property point _mouseStartPos
-    property var _targetStartPos
-
+    property var _axis
+    property real _prevMouseAngle
     property int _draggingOnBackside
-
-    materials: DefaultMaterial {
-        id: material
-        emissiveColor: currentGizmoAxisNode == arrow ? Qt.lighter(color) : color
-        lighting: DefaultMaterial.NoLighting
-    }
 
     function startDrag(mousePos)
     {
-        _mouseStartPos = mousePos
-        var sp = nodeBeingManipulated.position
-        _targetStartPos = Qt.vector3d(sp.x, sp.y, sp.z)
+        var center = overlayView.mapFrom3DScene(nodeBeingManipulated.scenePosition)
+        var deltaX = mousePos.x - center.x
+        var deltaY = mousePos.y - center.y
+        var rad = Math.atan2(deltaY, deltaX);
+        _prevMouseAngle = rad * (180 / Math.PI)
 
-        var relCamPos = overlayView.camera.mapPositionToNode(arrow, Qt.vector3d(0, 0, 0));
+        if (axis === Qt.XAxis)
+            _axis = Qt.vector3d(1, 0, 0)
+        else if (axis === Qt.YAxis)
+            _axis = Qt.vector3d(0, 1, 0)
+        else
+            _axis = Qt.vector3d(0, 0, 1)
+
+        var relCamPos = overlayView.camera.mapPositionToNode(torus360, Qt.vector3d(0, 0, 0));
         _draggingOnBackside = relCamPos.z > 0 ? -1 : 1
         if (nodeBeingManipulated.orientation === Node.RightHanded)
             _draggingOnBackside *= -1;
@@ -91,53 +87,55 @@ Model {
 
     function continueDrag(mousePos)
     {
-        var deltaX = mousePos.x - _mouseStartPos.x
-        var deltaY = mousePos.y - _mouseStartPos.y
-        deltaY *= -1 // Convert
+        var center = overlayView.mapFrom3DScene(nodeBeingManipulated.scenePosition)
+        var deltaX = mousePos.x - center.x
+        var deltaY = mousePos.y - center.y
+        var rad = Math.atan2(deltaY, deltaX);
+        var mouseAngle = rad * (180 / Math.PI)
 
-//        deltaX *= _draggingOnBackside
-//        deltaY *= _draggingOnBackside
+        var flipX = deltaY > 0 ? 1 : -1
+        var flipY = deltaX > 0 ? 1 : -1
 
-        var newPos = Qt.vector3d(_targetStartPos.x + deltaX, 0, 0)
+        var degrees = mouseAngle - _prevMouseAngle
+        degrees *= _draggingOnBackside
+        _prevMouseAngle = mouseAngle
 
-        print(_targetStartPos.y + deltaY, newPos)
-
-//        var posInParent = nodeBeingManipulated.parent.mapPositionFromScene(newScenePos)
-        nodeBeingManipulated.position = newPos
+        nodeBeingManipulated.rotate(-degrees, _axis, globalOrientation ? Node.SceneSpace : Node.LocalSpace)
     }
 
+    Torus90 {
+        id: upSegment
+        pivot: Qt.vector3d(0, -1, 0)
+        color: torus360.color
+        gizmoAxisRoot: torus360
+        pickable: true
+    }
 
-//    function handlePressed(mouseArea, pointerPosition)
-//    {
-//        if (!targetNode)
-//            return;
+    Torus90 {
+        id: leftSegment
+        pivot: Qt.vector3d(0, -1, 0)
+        rotation: Qt.vector3d(0, 0, 90)
+        color: torus360.color
+        gizmoAxisRoot: torus360
+        pickable: true
+    }
 
-//        var maskedPosition = Qt.vector3d(pointerPosition.x, 0, 0)
-//        _pointerPosPressed = mouseArea.mapPositionToScene(maskedPosition)
-//        var sp = targetNode.scenePosition
-//        _targetStartPos = Qt.vector3d(sp.x, sp.y, sp.z);
-//    }
+    Torus90 {
+        id: bottomSegment
+        pivot: Qt.vector3d(0, -1, 0)
+        rotation: Qt.vector3d(0, 0, 180)
+        color: torus360.color
+        gizmoAxisRoot: torus360
+        pickable: true
+    }
 
-//    function handleDragged(mouseArea, pointerPosition)
-//    {
-//        if (!targetNode)
-//            return;
-
-//        var maskedPosition = Qt.vector3d(pointerPosition.x, 0, 0)
-//        var scenePointerPos = mouseArea.mapPositionToScene(maskedPosition)
-//        var sceneRelativeDistance = Qt.vector3d(
-//                    scenePointerPos.x - _pointerPosPressed.x,
-//                    scenePointerPos.y - _pointerPosPressed.y,
-//                    scenePointerPos.z - _pointerPosPressed.z)
-
-//        var newScenePos = Qt.vector3d(
-//                    _targetStartPos.x + sceneRelativeDistance.x,
-//                    _targetStartPos.y + sceneRelativeDistance.y,
-//                    _targetStartPos.z + sceneRelativeDistance.z)
-
-//        var posInParent = targetNode.parent.mapPositionFromScene(newScenePos)
-//        targetNode.position = posInParent
-//    }
+    Torus90 {
+        id: rightSegment
+        pivot: Qt.vector3d(0, -1, 0)
+        rotation: Qt.vector3d(0, 0, 270)
+        color: torus360.color
+        gizmoAxisRoot: torus360
+        pickable: true
+    }
 
 }
-

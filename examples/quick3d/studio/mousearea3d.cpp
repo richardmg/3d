@@ -81,6 +81,11 @@ bool MouseArea3D::grabsMouse() const
     return m_grabsMouse;
 }
 
+bool MouseArea3D::enabled() const
+{
+    return m_enabled;
+}
+
 qreal MouseArea3D::x() const
 {
     return m_x;
@@ -155,16 +160,40 @@ void MouseArea3D::setHeight(qreal height)
     emit heightChanged(height);
 }
 
+void MouseArea3D::setEnabled(bool enabled)
+{
+    if (m_enabled == enabled)
+        return;
+
+    m_enabled = enabled;
+    updateSetEnabled();
+
+    emit enabledChanged(m_enabled);
+}
+
+void MouseArea3D::updateSetEnabled()
+{
+    if (m_enabled) {
+        if (!m_view3D) {
+            qmlDebug(this) << "property 'view3D' is not set!";
+            return;
+        }
+        m_view3D->setAcceptedMouseButtons(Qt::LeftButton);
+        m_view3D->setAcceptHoverEvents(true);
+        m_view3D->setAcceptTouchEvents(false);
+        m_view3D->installEventFilter(this);
+    } else {
+        if (m_view3D) {
+            m_view3D->setAcceptHoverEvents(false);
+            m_view3D->removeEventFilter(this);
+        }
+    }
+}
+
 void MouseArea3D::componentComplete()
 {
-    if (!m_view3D) {
-        qmlDebug(this) << "property 'view3D' is not set!";
-        return;
-    }
-    m_view3D->setAcceptedMouseButtons(Qt::LeftButton);
-    m_view3D->setAcceptHoverEvents(true);
-    m_view3D->setAcceptTouchEvents(false);
-    m_view3D->installEventFilter(this);
+    if (m_enabled)
+        updateSetEnabled();
 }
 
 QVector3D MouseArea3D::rayIntersectsPlane(const QVector3D &rayPos0, const QVector3D &rayPos1, const QVector3D &planePos, const QVector3D &planeNormal) const
@@ -201,18 +230,18 @@ QVector3D MouseArea3D::getMousePosInPlane(const QPointF mousePosInView) const
     const QVector3D rayPos0 = m_view3D->mapTo3DScene(mousePos1);
     const QVector3D rayPos1 = m_view3D->mapTo3DScene(mousePos2);
 
-    const QVector3D globalPlanePosition = mapPositionToScene(QVector3D(0, 0, 0));
-    const QVector3D intersectGlobalPos = rayIntersectsPlane(rayPos0, rayPos1, globalPlanePosition, forward());
+    const QVector3D intersectPos = rayIntersectsPlane(rayPos0, rayPos1, scenePosition(), forward());
 
-    if (qFuzzyCompare(intersectGlobalPos.z(), -1))
-        return intersectGlobalPos;
+    if (qFuzzyCompare(intersectPos.z(), -1))
+        return intersectPos;
 
-    return mapPositionFromScene(intersectGlobalPos);
+    return mapPositionFromScene(intersectPos);
 }
 
 bool MouseArea3D::eventFilter(QObject *, QEvent *event)
 {
     switch (event->type()) {
+    case QEvent::MouseButtonPress:
     case QEvent::HoverMove: {
         if (m_grabsMouse && s_mouseGrab && s_mouseGrab != this)
             break;
