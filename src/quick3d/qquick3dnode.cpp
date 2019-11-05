@@ -702,6 +702,45 @@ void QQuick3DNode::rotate(qreal degrees, const QVector3D &axis, TransformSpace s
     update();
 }
 
+void QQuick3DNode::translate(const QVector3D &distance, TransformSpace space)
+{
+    Q_D(QQuick3DNode);
+
+    QMatrix4x4 currTransform = d->calculateLocalTransformRightHanded();
+    QMatrix4x4 addTransform;
+    addTransform(0, 3) += distance[0];
+    addTransform(1, 3) += distance[1];
+    addTransform(2, 3) += distance[2];
+    QMatrix4x4 newMatrix;
+
+    switch (space) {
+    case LocalSpace:
+        newMatrix = currTransform * addTransform;
+        break;
+    case ParentSpace:
+        newMatrix = addTransform * currTransform;
+        break;
+    case SceneSpace:
+        if (const auto parent = parentNode()) {
+            const QMatrix4x4 pm = d->localRotationMatrix();
+            const QMatrix4x4 prm = parent->sceneTransform();
+            newMatrix = prm.inverted() * addTransform * prm * pm;
+        } else {
+            newMatrix = currTransform * addTransform;
+        }
+        break;
+    }
+
+    QVector3D newPosition = mat44::getPosition(newMatrix);
+
+    if (d->m_rotation == newPosition)
+        return;
+
+    d->m_position = newPosition;
+    d->markSceneTransformDirty();
+    emit positionChanged();
+    update();
+}
 QSSGRenderGraphObject *QQuick3DNode::updateSpatialNode(QSSGRenderGraphObject *node)
 {
     Q_D(QQuick3DNode);
