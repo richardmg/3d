@@ -298,21 +298,20 @@ Item {
 
             if (useMouse) {
                 // Get the delta
-                var rotationVector = controlledObject.rotation;
                 var delta = Qt.vector2d(lastPos.x - currentPos.x,
                                         lastPos.y - currentPos.y);
                 // rotate x
                 var rotateX = delta.x * -xSpeed
                 if (xInvert)
                     rotateX = -rotateX;
-                rotationVector.y += rotateX;
+                controlledObject.rotate(rotateX, Qt.vector3d(0, 1, 0), Node.ParentSpace)
 
                 // rotate y
                 var rotateY = delta.y * ySpeed
                 if (yInvert)
                     rotateY = -rotateY;
-                rotationVector.x += rotateY;
-                controlledObject.setRotation(rotationVector);
+                controlledObject.rotate(rotateY, Qt.vector3d(1, 0, 0), Node.LocalSpace)
+
                 lastPos = currentPos;
             }
         }
