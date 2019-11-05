@@ -60,12 +60,12 @@ Model {
     property Node gizmoRoot
     property Node gizmoAxisRoot: arrow
     property int axis: kNoGizmoAxis
-
     property color color: "white"
 
     property var _pointerPosPressed
     property point _mouseStartPos
     property var _targetStartPos
+    property var _direction
 
     property int _draggingOnBackside
 
@@ -91,19 +91,21 @@ Model {
 
     function continueDrag(mousePos)
     {
-        var deltaX = mousePos.x - _mouseStartPos.x
+        var deltaX = (mousePos.x - _mouseStartPos.x) / 20
         var deltaY = mousePos.y - _mouseStartPos.y
-        deltaY *= -1 // Convert
 
-//        deltaX *= _draggingOnBackside
-//        deltaY *= _draggingOnBackside
+        var v
+        if (axis == Qt.XAxis)
+            v = Qt.vector3d(deltaX, 0, 0)
+        else if (axis == Qt.YAxis)
+            v = Qt.vector3d(0, deltaX, 0)
+        else
+            v = Qt.vector3d(0, 0, deltaX)
 
-        var newPos = Qt.vector3d(_targetStartPos.x + deltaX, 0, 0)
+        nodeBeingManipulated.translate(v, Node.LocalSpace);
 
-//        print(_targetStartPos.y + deltaY, newPos)
-
-//        var posInParent = nodeBeingManipulated.parent.mapPositionFromScene(newScenePos)
-        nodeBeingManipulated.position = newPos
+        _mouseStartPos.x = mousePos.x
+        _mouseStartPos.y = mousePos.y
     }
 
 

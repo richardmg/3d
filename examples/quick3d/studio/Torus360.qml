@@ -80,8 +80,6 @@ Node {
         _draggingOnBackside = relCamPos.z > 0 ? -1 : 1
         if (nodeBeingManipulated.orientation === Node.RightHanded)
             _draggingOnBackside *= -1;
-
-        print(_draggingOnBackside)
     }
 
     function continueDrag(mousePos)
