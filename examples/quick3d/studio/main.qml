@@ -241,7 +241,7 @@ ApplicationWindow {
                 id: translateButton
                 text: "Translate"
                 checkable: true
-                onClicked: wasd.forceActiveFocus()
+                focusPolicy: Qt.NoFocus
             }
 
             Button {
@@ -249,7 +249,7 @@ ApplicationWindow {
                 text: "Rotate"
                 checkable: true
                 checked: true
-                onClicked: wasd.forceActiveFocus()
+                focusPolicy: Qt.NoFocus
             }
         }
 
@@ -261,31 +261,31 @@ ApplicationWindow {
             anchors.margins: 4
             Button {
                 text: "Front"
+                focusPolicy: Qt.NoFocus
                 onClicked: {
                     var dist = perspectiveCamera.scenePosition.minus(nodeBeingManipulated.scenePosition).length()
                     perspectiveCamera.rotation = Qt.vector3d(0, 0, 0)
                     perspectiveCamera.position = nodeBeingManipulated.position.plus(Qt.vector3d(0, 0, -dist))
-                    wasd.forceActiveFocus()
                 }
             }
 
             Button {
                 text: "Right"
+                focusPolicy: Qt.NoFocus
                 onClicked: {
                     var dist = perspectiveCamera.scenePosition.minus(nodeBeingManipulated.scenePosition).length()
                     perspectiveCamera.rotation = Qt.vector3d(0, -90, 0)
                     perspectiveCamera.position = nodeBeingManipulated.position.plus(Qt.vector3d(dist, 0, 0))
-                    wasd.forceActiveFocus()
                 }
             }
 
             Button {
                 text: "Top"
+                focusPolicy: Qt.NoFocus
                 onClicked: {
                     var dist = perspectiveCamera.scenePosition.minus(nodeBeingManipulated.scenePosition).length()
                     perspectiveCamera.rotation = Qt.vector3d(90, 0, 0)
                     perspectiveCamera.position = nodeBeingManipulated.position.plus(Qt.vector3d(0, dist, 0))
-                    wasd.forceActiveFocus()
                 }
             }
         }
@@ -297,7 +297,7 @@ ApplicationWindow {
             CheckBox {
                 id: spaceControl
                 checked: false
-                onCheckedChanged: wasd.forceActiveFocus()
+                focusPolicy: Qt.NoFocus
                 Text {
                     anchors.left: parent.right
                     anchors.verticalCenter: parent.verticalCenter
@@ -308,9 +308,7 @@ ApplicationWindow {
             CheckBox {
                 id: perspectiveControl
                 checked: true
-                onCheckedChanged: {
-                    wasd.forceActiveFocus()
-                }
+                focusPolicy: Qt.NoFocus
                 Text {
                     anchors.left: parent.right
                     anchors.verticalCenter: parent.verticalCenter
@@ -321,7 +319,7 @@ ApplicationWindow {
             CheckBox {
                 id: showLabelsControl
                 checked: true
-                onCheckedChanged: wasd.forceActiveFocus()
+                focusPolicy: Qt.NoFocus
                 Text {
                     anchors.left: parent.right
                     anchors.verticalCenter: parent.verticalCenter
