@@ -83,9 +83,7 @@ Node {
             _axis = Qt.vector3d(0, 0, 1)
 
         var relCamPos = _view.camera.mapPositionToNode(torus360, Qt.vector3d(0, 0, 0));
-        _draggingOnBackside = relCamPos.z > 0 ? -1 : 1
-        if (_target.orientation === Node.RightHanded)
-            _draggingOnBackside *= -1;
+        _draggingOnBackside = relCamPos.z > 0 ? 1 : -1
     }
 
     function continueDrag(pointerPosition)
@@ -99,7 +97,7 @@ Node {
         degrees *= _draggingOnBackside
         _prevMouseAngle = mouseAngle
 
-        _target.rotate(-degrees, _axis, space)
+        _target.rotate(degrees, _axis, space)
     }
 
     RotateGizmoTorus90 {
