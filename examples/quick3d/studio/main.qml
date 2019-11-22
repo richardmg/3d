@@ -265,7 +265,7 @@ ApplicationWindow {
                 onClicked: {
                     var dist = perspectiveCamera.scenePosition.minus(nodeBeingManipulated.scenePosition).length()
                     perspectiveCamera.rotation = Qt.vector3d(0, 0, 0)
-                    perspectiveCamera.position = nodeBeingManipulated.position.plus(Qt.vector3d(0, 0, -dist))
+                    perspectiveCamera.position = nodeBeingManipulated.scenePosition.plus(Qt.vector3d(0, 0, -dist))
                 }
             }
 
@@ -275,7 +275,7 @@ ApplicationWindow {
                 onClicked: {
                     var dist = perspectiveCamera.scenePosition.minus(nodeBeingManipulated.scenePosition).length()
                     perspectiveCamera.rotation = Qt.vector3d(0, -90, 0)
-                    perspectiveCamera.position = nodeBeingManipulated.position.plus(Qt.vector3d(dist, 0, 0))
+                    perspectiveCamera.position = nodeBeingManipulated.scenePosition.plus(Qt.vector3d(dist, 0, 0))
                 }
             }
 
@@ -285,7 +285,7 @@ ApplicationWindow {
                 onClicked: {
                     var dist = perspectiveCamera.scenePosition.minus(nodeBeingManipulated.scenePosition).length()
                     perspectiveCamera.rotation = Qt.vector3d(90, 0, 0)
-                    perspectiveCamera.position = nodeBeingManipulated.position.plus(Qt.vector3d(0, dist, 0))
+                    perspectiveCamera.position = nodeBeingManipulated.scenePosition.plus(Qt.vector3d(0, dist, 0))
                 }
             }
         }
