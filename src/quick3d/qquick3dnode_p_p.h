@@ -69,6 +69,7 @@ public:
     void markSceneTransformDirty();
 
     inline QMatrix4x4 localRotationMatrix() const;
+    inline QMatrix4x4 sceneRotationMatrix() const;
 
     void emitChangesToSceneTransform();
     bool isSceneTransformRelatedSignal(const QMetaMethod &signal) const;

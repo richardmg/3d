@@ -373,9 +373,15 @@ QVector3D QQuick3DNode::scenePosition() const
 QVector3D QQuick3DNode::sceneRotation() const
 {
     Q_D(const QQuick3DNode);
-    QMatrix4x4 m = sceneTransform();
-    mat44::normalize(m);
-    return mat44::getRotation(m, EulerOrder(d->m_rotationorder));
+    return mat44::getRotation(d->sceneRotationMatrix(), EulerOrder(d->m_rotationorder));
+}
+
+QMatrix4x4 QQuick3DNodePrivate::sceneRotationMatrix() const
+{
+    if (auto *parent = q_func()->parentNode())
+        return localRotationMatrix() * QQuick3DNodePrivate::get(parent)->sceneRotationMatrix();
+
+    return localRotationMatrix();
 }
 
 /*!
