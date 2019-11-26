@@ -116,16 +116,19 @@ ApplicationWindow {
                     enableAxisLines: false
                 }
 
-                Model {
-                    id: pot1
-                    objectName: "First pot"
-                    y: 200
-                    pickable: true
-                    rotation: Qt.vector3d(0, 0, 45)
-                    source: "meshes/teapot.mesh"
-                    scale: Qt.vector3d(20, 20, 20)
-                    materials: DefaultMaterial {
-                        diffuseColor: "salmon"
+                Node {
+                    scale: Qt.vector3d(15, 1, 1)
+                    Model {
+                        id: pot1
+                        objectName: "First pot"
+                        y: 200
+                        pickable: true
+                        //source: "meshes/teapot.mesh"
+                        source: "#Cube"
+//                        scale: Qt.vector3d(20, 20, 20)
+                        materials: DefaultMaterial {
+                            diffuseColor: "salmon"
+                        }
                     }
                 }
 
