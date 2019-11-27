@@ -117,15 +117,14 @@ ApplicationWindow {
                 }
 
                 Node {
-                    scale: Qt.vector3d(15, 1, 1)
+                    scale: Qt.vector3d(3, 1, 1)
                     Model {
                         id: pot1
                         objectName: "First pot"
                         y: 200
                         pickable: true
-                        //source: "meshes/teapot.mesh"
-                        source: "#Cube"
-//                        scale: Qt.vector3d(20, 20, 20)
+                        source: "meshes/teapot.mesh"
+                        scale: Qt.vector3d(20, 20, 20)
                         materials: DefaultMaterial {
                             diffuseColor: "salmon"
                         }
@@ -139,9 +138,9 @@ ApplicationWindow {
                     y: 200
                     z: 300
                     pickable: true
-                    rotation: Qt.vector3d(45, 45, 0)
+                    rotation: pot1.sceneRotation
                     source: "meshes/teapot.mesh"
-                    scale: Qt.vector3d(20, 40, 20)
+                    scale: pot1.sceneScale
                     materials: DefaultMaterial {
                         diffuseColor: "darkkhaki"
                     }
